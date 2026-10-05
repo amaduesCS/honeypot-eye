@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial=1">
+<title>ARDP Rewards Center — live honeypot ops</title>
+<style>
+:root{--bg:#0b0f14;--card:#111826;--ok:#38d39f;--warn:#f5b043;--tx:#6ea8fe;--dim:#8b98ab;--line:#1e2a3a}
+*{box-sizing:border-box;margin:0;padding:0;font-family:ui-monospace,Menlo,Consolas,monospace}
+body{background:var(--bg);color:#dfe7f1;padding:24px;max-width:1100px;margin:auto}
+h1{font-size:20px;letter-spacing:.5px} .sub{color:var(--dim);font-size:12px;margin-top:4px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px;margin:18px 0}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px}
+.k{color:var(--dim);font-size:11px;text-transform:uppercase;letter-spacing:1px}
+.v{font-size:20px;margin-top:6px} .v.small{font-size:13px}
+.badge{display:inline-block;padding:2px 8px;border-radius:99px;font-size:11px}
+.ok{background:#123326;color:var(--ok)} .warn{background:#3a2c12;color:var(--warn)}
+table{width:100%;border-collapse:collapse;font-size:12px}
+th,td{text-align:left;padding:6px 8px;border-bottom:1px solid var(--line)}
+th{color:var(--dim);font-weight:normal;text-transform:uppercase;font-size:10px;letter-spacing:1px}
+a{color:var(--tx);text-decoration:none} a:hover{text-decoration:underline}
+section{margin:26px 0} h2{font-size:14px;margin-bottom:10px;color:#aebfdd}
+.bug{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:12px;margin-bottom:10px}
+.bug b{color:#ffd479} .bug .truth{color:var(--dim);font-size:12px;margin-top:4px}
+.cta{background:linear-gradient(135deg,#123326,#0e2438);border:1px solid #1f4d3a;border-radius:12px;padding:18px;margin:18px 0}
+.steps li{margin:8px 0 8px 18px;font-size:13px}
+.pill{font-size:11px;color:var(--dim)}
+#conn{background:#173a5e;color:#fff;border:0;border-radius:8px;padding:8px 14px;cursor:pointer;font-family:inherit}
+#mybal{margin-left:10px;color:var(--ok)}
+</style>
+</head>
+<body>
+<h1>ARDP REWARDS CENTER <span class="badge ok" id="live">● LIVE</span></h1>
+<div class="sub">Ethereum mainnet · honeypot ops console &amp; airdrop claim · 数据直接读链，无后端</div>
+
+<div class="grid">
+  <div class="card"><div class="k">金库总量 (treasury)</div><div class="v" id="treasury">…</div><div class="pill" id="treasuryUsd"></div></div>
+  <div class="card"><div class="k">运营资金保护</div><div class="v small" id="guard">…</div><div id="guardBadge"></div></div>
+  <div class="card"><div class="k">Gas now</div><div class="v" id="gas">…</div><div class="pill">gwei · 越低越适合动手</div></div>
+  <div class="card"><div class="k">交互计数 (本次会话已解码)</div><div class="v" id="hits">0</div><div class="pill">激活/提取/收割/扫货</div></div>
+</div>
+
+<div class="card" style="margin-bottom:6px">
+<table id="contracts">
+<tr><th>蜜罐面</th><th>地址</th><th>状态</th></tr>
+<tr><td>ARDP 蜜罐代币 (tax100 + 付费激活)</td><td><a id="l-ardp" href="#">0x1a8d…dc9</a></td><td id="s-ardp">…</td></tr>
+<tr><td>TrapVault 五重漏洞金库</td><td><a id="l-tv" href="#">0x2ab2…eac</a></td><td id="s-tv">…</td></tr>
+</table>
+</div>
+
+<section>
+<h2>① 领取空投（免费 ARDP）</h2>
+<div class="cta">
+<ol class="steps">
+<li>连接钱包 → <button id="conn">Connect MetaMask</button><span id="mybal"></span></li>
+<li>你的 ARDP 余额自动显示；空投已空投到大量地址</li>
+<li>想「解锁提现」？向合约支付 0.0002 ETH 激活：<a id="l-act" href="#">etherscan 写入 activate()</a>（付费即进金库，此为收割入口）</li>
+<li>提现走 withdraw —— 注意 50% 过路费归金库（见下）</li>
+</ol>
+</div>
+</section>
+
+<section>
+<h2>② 暴露的「漏洞」 — 扫描器速查（真相见灰字）</h2>
+<div class="bug"><b>1. skim() — 未授权 ETH 窃取面</b><div class="truth">真相：未激活时只发事件不转账（假成功）；激活后才“真扫”，但池子=激活费，先到先得</div><a id="l-skim" href="#">etherscan 写入 →</a></div>
+<div class="bug"><b>2. pendingReward() — 收益视图 2 倍幻觉</b><div class="truth">真相：view 给 200% 模拟幻觉；harvest 真实公式是 2%/次且有 10% 池子上限</div></div>
+<div class="bug"><b>3. withdraw() — 无权限紧急提取</b><div class="truth">真相：任何人可调用，但 50% exitFee 归金库——半价出场</div><a id="l-wd" href="#">etherscan 写入 →</a></div>
+<div class="bug"><b>4. setRewardsRate() — 世界可写“管理员失误”</b><div class="truth">真相：非 owner 调用静默无效（return），看起来像bug，实际是过滤</div></div>
+<div class="bug"><b>5. ARDP transfer 税后到账 0</b><div class="truth">真相：tax100 模式下转移“成功”但价值全数进金库——转入容易转出难</div></div>
+</section>
+
+<section>
+<h2>③ 实时动态（链上事件流）</h2>
+<div class="card"><table id="feed"><tr><th>时间</th><th>事件</th><th>谁</th><th>数量</th><th>tx</th></tr></table></div>
+</section>
+
+<script>
+const RPCS=["https://ethereum-rpc.publicnode.com","https://cloudflare-eth.com","https://1rpc.io/eth"];
+const ARDP="0x1a8d954230c795c405d479a4cc23b92ddfed86c9", TV="0x2ab2dc8ff4a8141d75a5480dc215f99d8a160eac";
+const OP="0x1179faf45e2F72A50012f6e927335ccDb13613A6", P3="0x9C74b213e0A12A839C200b1907dbB8b3725199c3";
+const EXPL=a=>`https://etherscan.io/address/${a}`;
+document.getElementById("l-ardp").href=EXPL(ARDP); document.getElementById("l-tv").href=EXPL(TV);
+document.getElementById("l-act").href=`https://etherscan.io/address/${ARDP}#writeContract`;
+document.getElementById("l-skim").href=`https://etherscan.io/address/${TV}#writeContract`;
+document.getElementById("l-wd").href=`https://etherscan.io/address/${TV}#writeContract`;
+
+let rpcIdx=0, hits=0;
+async function rpc(m,p){for(let t=0;t<3;t++){const r=await fetch(RPCS[(rpcIdx+t)%3],{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({jsonrpc:"2.0",id:1,method:m,params:p}),signal:AbortSignal.timeout(9000)}).then(x=>x.json()).catch(()=>null);if(r&&r.result){rpcIdx=(rpcIdx+t)%3;return r.result;}}throw new Error("rpc down");}
+const hex=n=>Number(BigInt(n));
+const eth=w=>hex(w)/1e18; const f=(n,d=4)=>Number(n).toFixed(d);
+const pad=a=>("0"+a.replace(/^0x/,"")).slice(-40);
+const T={Act:"0xcffdf6de62e8d9ae544ba4c36565fe4bcef3c1a96f174abbe6c56e25e2b220ed",Skim:"0xb0477b3d4d588e76d76df1c6cf069311c9dc4f742f19d0f74a70f58803d0768f",Hv:"0x121c5042302bae5fc561fbc64368f297ca60a880878e1e3a7f7e9380377260bf",Wd:"0x92ccf450a286a957af52509bc1c9939d1a6a481783e142e41e2499f0bb66ebc6",Dep:"0x2da466a7b24304f47e87fa2e1e5a81b9831ce54fec19055ce277ca2f39ba42c4",Xfer:"0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef"};
+
+async function refresh(){
+  try{
+    const [g,tv,ardp,op,p3]=await Promise.all([
+      rpc("eth_gasPrice",[]),
+      rpc("eth_getBalance",[TV,"latest"]),
+      rpc("eth_getBalance",[ARDP,"latest"]),
+      rpc("eth_getBalance",[OP,"latest"]),
+      rpc("eth_getBalance",[P3,"latest"]),
+    ]);
+    document.getElementById("gas").textContent=f(hex(g)/1e9,2);
+    const treas=eth(tv)+eth(ardp); document.getElementById("treasury").textContent=f(treas,5)+" ETH";
+    let px=2720; try{const r=await(await fetch("https://api.coingecko.com/api/v3/simple/price?ids=ethereum&vs_currencies=usd")).json();px=r.ethereum.usd;}catch(e){}
+    document.getElementById("treasuryUsd").textContent="≈ $"+f(treas*px,2);
+    const guardEth=eth(op)+eth(p3);
+    const gb=document.getElementById("guardBadge"), gv=document.getElementById("guard");
+    gv.textContent="operator+POOL3 "+f(guardEth,5)+" ETH ≈ $"+f(guardEth*px,2);
+    gb.innerHTML=guardEth*px>=10?'<span class="badge ok">≥ $10 保线 ✓</span>':'<span class="badge warn">接近 $10 保线 — 停止支出</span>';
+    document.getElementById("s-ardp").textContent="tax100 · fee 0.0002 · LIVE";
+    document.getElementById("s-tv").textContent="5 面漏洞 · exit 50% · LIVE";
+  }catch(e){document.getElementById("live").className="badge warn";document.getElementById("live").textContent="● RPC 波动";}
+}
+
+function row(ts,name,who,amt,tx){
+  const tr=document.createElement("tr");
+  const t=new Date(ts*1000).toLocaleTimeString();
+  const a=`<a href="https://etherscan.io/tx/${tx}">${tx.slice(0,10)}…</a>`;
+  const w=`<a href="https://etherscan.io/address/${who}">${who.slice(0,8)}…</a>`;
+  tr.innerHTML=`<td>${t}</td><td>${name}</td><td>${w}</td><td>${amt}</td><td>${a}</td>`;
+  const tb=document.getElementById("feed");tb.insertBefore(tr,tb.rows[1]);
+  hits++;document.getElementById("hits").textContent=hits;
+}
+async function pull(){
+  try{
+    const head=hex(await rpc("eth_blockNumber",[])); const from="0x"+Math.max(0,head-9000).toString(16);
+    const blk=async n=>hex((await rpc("eth_getBlockByNumber",[n,false])).timestamp)*1000;
+    const jobs=[
+      rpc("eth_getLogs",[{address:ARDP,fromBlock:from,toBlock:"latest",topics:[T.Act]}]).then(r=>(r||[]).forEach(async l=>row(await blk(l.blockNumber),"ARDP 激活付费","0x"+l.topics[1].slice(26),eth(l.data)+" ETH",l.transactionHash))),
+      rpc("eth_getLogs",[{address:TV,fromBlock:from,toBlock:"latest",topics:[T.Act]}]).then(r=>(r||[]).forEach(async l=>row(await blk(l.blockNumber),"TV 激活付费","0x"+l.topics[1].slice(26),eth(l.data)+" ETH",l.transactionHash))),
+      rpc("eth_getLogs",[{address:TV,fromBlock:from,toBlock:"latest",topics:[T.Wd]}]).then(r=>(r||[]).forEach(async l=>{const d=l.data.slice(2);row(await blk(l.blockNumber),"TV 退出(50%税)","0x"+l.topics[1].slice(26),eth("0x"+d.slice(0,64))+" fee:"+eth("0x"+d.slice(64,128)),l.transactionHash)})),
+      rpc("eth_getLogs",[{address:TV,fromBlock:from,toBlock:"latest",topics:[T.Hv]}]).then(r=>(r||[]).forEach(async l=>row(await blk(l.blockNumber),"TV 收割","0x"+l.topics[1].slice(26),eth(l.data)+" ETH",l.transactionHash))),
+      rpc("eth_getLogs",[{address:TV,fromBlock:from,toBlock:"latest",topics:[T.Skim]}]).then(r=>(r||[]).forEach(async l=>row(await blk(l.blockNumber),"skim 扫货尝试","0x"+l.topics[1].slice(26),eth(l.data),l.transactionHash))),
+      rpc("eth_getLogs",[{address:ARDP,fromBlock:from,toBlock:"latest",topics:[T.Xfer]}]).then(r=>(r||[]).filter(x=>x.topics[2]&&"0x"+x.topics[2].slice(26)===OP.toLowerCase()).forEach(async l=>row(await blk(l.blockNumber),"ARDP 税收入账","0x"+l.topics[1].slice(26),eth(l.data)+" ARDP",l.transactionHash))),
+    ];
+    await Promise.allSettled(jobs);
+  }catch(e){}
+}
+document.getElementById("conn").onclick=async()=>{
+  if(!window.ethereum)return alert("没有检测到钱包插件");
+  try{const acc=await window.ethereum.request({method:"eth_requestAccounts"});const a=acc[0];
+    const b=hex(await window.ethereum.request({method:"eth_call",params:[{to:ARDP,data:"0x70a08231"+pad(a).toLowerCase()},"latest"]}))/1e18;
+    document.getElementById("mybal").textContent=`${a.slice(0,8)}… → ARDP ${f(b,2)}`;
+  }catch(e){document.getElementById("mybal").textContent="连接取消";}
+};
+refresh();pull();setInterval(refresh,30000);setInterval(pull,45000);
+</script>
+</body>
+</html>
