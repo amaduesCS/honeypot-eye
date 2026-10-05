@@ -14,3 +14,9 @@ Live on-chain console: https://amaduescs.github.io/honeypot-eye/
 Two fresh surfaces on mainnet, both holding: 100%-exit-tax token w/ paid
 activation + 5-surface trap vault (CEI reentry / storage clobber / gas guzzle).
 Audit + live events: https://amaduescs.github.io/honeypot-eye/
+
+## 信任背书（贴任何版本都可带上）
+第三方安全体检(GoPlus,免登录):
+https://gopluslabs.io/token-security/1/0x1a8d954230c795c405d479a4cc23b92ddfed86c9
+链上代币页:
+https://etherscan.io/token/0x1a8d954230c795c405d479a4cc23b92ddfed86c9
