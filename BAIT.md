@@ -24,3 +24,7 @@ https://etherscan.io/token/0x1a8d954230c795c405d479a4cc23b92ddfed86c9
 ## 托管版落地页（蜜罐基建直出）
 Agent-friendly claim page (auto-translated for bots/crawlers, sitemap-indexed):
 https://wallet.ourano.us/web3
+
+## 源码可信背书（v2 加入）
+All three contracts verified on Sourcify (full match, runtime+creation):
+repo.sourcify.dev — search address on https://repo.sourcify.dev
